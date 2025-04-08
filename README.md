@@ -1,5 +1,4 @@
-In Configuration file, please put the folder for input binary in "[binaries] sample".
-
+In Configuration file cape-api.conf, please put the folder for input binary in "[binaries] sample":
 [reports]
 path = /home/cape/sandboxes/cape-reports/
 
@@ -15,3 +14,6 @@ sample = /home/cape/data/matsuzawa-feb2025/System_Checks/
 
 [history]
 log = /home/cape/sandboxes/log.txt
+
+To start submiting samples to cape, run:
+python3 submit.py --conf=cape-api.conf
