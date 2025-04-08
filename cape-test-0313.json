@@ -1,0 +1,134 @@
+[
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Physical Monitor (win32api)",
+            "Result": "User Environment",
+            "Details": 1
+        },
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Audio Device (pycaw)",
+            "Result": "User Environment",
+            "Details": 2
+        },
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "CPU Cores (subprocess)",
+            "Result": "Sandbox Environment",
+            "Details": 1
+        },
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Memory Size (win32api)",
+            "Result": "User Environment",
+            "Details": "16.0 GB"
+        },
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Username (psutil)",
+            "Result": "Sandbox Environment",
+            "Details": "Administrator"
+        },
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Username (subprocess)",
+            "Result": "Sandbox Environment",
+            "Details": "Administrator"
+        }
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Items in Downloads (win32com)",
+            "Result": "Sandbox Environment",
+            "Details": 31
+        },
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Clip Board (win32clipboard)",
+            "Result": "User Environment",
+            "Details": "Clipboard has content: 'a'"
+        },
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Memory Size (psutil)",
+            "Result": "Sandbox Environment",
+            "Details": "3.802227020263672 GB"
+        },
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Available size of HDD (shutil)",
+            "Result": "Sandbox Environment",
+            "Details": "29.47711944580078 GB"
+        },
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "MAC Adress Prefix (uuid)",
+            "Result": "User Environment",
+            "Details": []
+        },
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Username (os-getpass)",
+            "Result": "Sandbox Environment",
+            "Details": "Administrator"
+        },
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Physical Monitor (screeninfo)",
+            "Result": "User Environment",
+            "Details": 1
+        },
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Boot From Virtual HDD (ctypes)",
+            "Result": "User Environment",
+            "Details": []
+        },
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Username (tempfile)",
+            "Result": "User Environment",
+            "Details": "ADMINI~1"
+        }, 
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Total size of HDD (win32com-2)",
+            "Result": "Sandbox Environment",
+            "Details": "238.47493743896484 GB"
+        }, 
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Screen Resolution (wxPython)",
+            "Result": "User Environment",
+            "Details": "Resolution : (768, 1024)"
+        }, 
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "CPU Cores (win32com)",
+            "Result": "Sandbox Environment",
+            "Details": 1
+        }, 
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Audio Device (os)",
+            "Result": "User Environment",
+            "Details": 1
+        },
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "CPU Cores (wmi)",
+            "Result": "Sandbox Environment",
+            "Details": 1
+        }, 
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Available size of HDD (win32com)",
+            "Result": "Sandbox Environment",
+            "Details": "29.466270446777344 GB"
+        },
+        {
+            "Sandbox User": "Administrator",
+            "Evasion Method": "Specific Processes Running (wmi)",
+            "Result": "User Environment",
+            "Details": "(detected_processes, total_num) = ([], 136)"
+        }
+]
