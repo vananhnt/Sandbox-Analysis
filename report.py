@@ -4,6 +4,7 @@ import pandas as pd
 import time
 from pathlib import Path
 import time
+import shutil
 
 from utils.preprocessor import Preprocessor
 from utils.analysis import Analysis
@@ -26,7 +27,9 @@ def normalize_report(reports):
         with metadata , dynamic features, static features """
     normalize_dict = []
     for binary in reports:
+        #binary[0] = metadata, binary[1]=dynamic_features, binary[2]=static_features
         binary_dict =  { 'binary': binary[0]['md5'], 
+                        'analysis_id':binary[0]['id'],
                 'classification': binary[0]['classification'],
                 'registry_usage': binary[1]['registry_usage'],
                 # Dyn features
@@ -87,6 +90,21 @@ def save_static_to_csv(log_level, dataset, results_path):
     future project """
     dataset.to_csv(results_path + 'static-test.csv')
 
+def get_all_report_from_storage(cape_storage, report_dest):
+    """ Retrieve all report.json from storage if not in report_dest yet"""
+    for id in Path(cape_storage).glob("*"):
+        full_path = str(id.resolve())
+        task_id = int(id.stem) if id.stem != 'latest' else -1
+        if task_id > 0: 
+            for file in id.rglob("*"):
+                if task_id > 0:
+                    """ Retrieve reports based on task_id """
+                    """ Copy report json file """
+                    src_file = cape_storage + str(task_id) + "/reports/report.json"
+                    if os.path.isfile(src_file):
+                        dst_file = report_dest + "report-" + str(task_id) + ".json"
+                        shutil.copy(src_file, dst_file)
+
 def main():
     parser = argparse.ArgumentParser(description='Project description.')
     parser.add_argument('--verbose', '-v', dest="log_level", 
@@ -107,15 +125,19 @@ def main():
     conf_vars = preprocessor.get_configuration()
 
     """ Get configuration vars from configuration file """
-    reports_path = conf_vars['reports_path']
-    results_path = conf_vars['results_path']
+    reports_path = conf_vars['reports_path'] #Path to CAPE report that needed to be analysed
+    cape_storage = conf_vars['cape_storage'] #Path to storage of CAPE
+    
+    """ Set the folder to save analysis result """
+    results_path = conf_vars['results_path'] 
     results_folder = results_path + timestr + '/'
     Path(results_folder).mkdir(parents=True, exist_ok=True)
-   
+    #get_all_report_from_storage(cape_storage, reports_path)
+
     """ Starting time """
     start = time.time()
 
-    """ Iterate over all reports """
+    """ Iterate over all CAPE reports """
     iterator = os.scandir(reports_path)
     reports = []
     
@@ -127,17 +149,20 @@ def main():
             binary = tuple((metadata, dyn_features,sta_features))
             reports.append(binary)
 
+    """ Convert reports to dataframe """
     dataset = normalize_report(reports)
-    save_dynamic_to_csv(log_level, dataset, results_folder)
+    #save_dynamic_to_csv(log_level, dataset, results_folder)
 
     """ Data analysis """
-    data_analysis = Analysis(log_level, dataset, results_folder)
-    data_analysis.signature_category_count('signatures')
-    save_static_to_csv(log_level, dataset, results_folder)
+    data_analysis = Analysis(log_level, dataset, results_folder, cape_storage)
+    data_analysis.signature_category_count()
+    data_analysis.check_result_json()
+    #save_static_to_csv(log_level, dataset, results_folder)
     
     end = time.time()
-    print("[INFO] Elapsed time for normalizing and splitting dataset:"  
+    print("[INFO] Elapsed time for normalizing and analysing dataset:"  
                                     + " {} seconds".format(end - start))
 
 if __name__ == '__main__':
     main()
+    

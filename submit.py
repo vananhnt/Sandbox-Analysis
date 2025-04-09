@@ -119,7 +119,7 @@ def read_configuration(config_file, log_level):
             'storage_path': storage_path, 
              'history_path': log_path }
 
-def push_samples(sample_dir, reports=REPORTS, history_file=HISTORY_FILE, capeapi=CAPEAPI, cape_reports=CAPE_REPORTS):
+def push_samples(sample_dir, reports=REPORTS, history_file=HISTORY_FILE, capeapi=CAPEAPI, cape_storage=CAPE_STORE):
     print("[INFO] Send samples")
     good = 0
     f_good = open(history_file, 'a')
@@ -133,13 +133,13 @@ def push_samples(sample_dir, reports=REPORTS, history_file=HISTORY_FILE, capeapi
                     md5_hash = get_md5(full_path)
 
                     """ Copy report json file """
-                    src_file = cape_reports + str(task_id) + "/reports/report.json"
+                    src_file = cape_storage + str(task_id) + "/reports/report.json"
                     if os.path.isfile(src_file):
                         dst_file = reports + "report-" + md5_hash + "-0.json"
                         shutil.copy(src_file, dst_file)
 
                         """ Copy sysmon xml file """
-                        src_file = cape_reports + str(task_id) + "/sysmon/sysmon.xml"
+                        src_file = cape_storage + str(task_id) + "/sysmon/sysmon.xml"
                         if os.path.isfile(src_file):
                             dst_file = reports + "sysmon-" + md5_hash + "-0.xml"
                             shutil.copy(src_file, dst_file)
@@ -157,7 +157,6 @@ def push_samples(sample_dir, reports=REPORTS, history_file=HISTORY_FILE, capeapi
                         f_good.write("{} - Failed report.json\n".format(full_path))
                 else:
                     f_good.write("{} - Failed in send_file() func.\n".format(full_path))
-        
     f_good.flush()
     f_good.close()
 
@@ -177,13 +176,13 @@ def main():
     conf_vars = read_configuration(args.conf_file.name, args.log_level)
 	
     CAPEAPI = conf_vars['api_uri']
-    CAPE_REPORTS = conf_vars['storage_path']
+    CAPE_STORE = conf_vars['storage_path']
     SAMPLE_DIR = conf_vars['samples_path']
     REPORTS = conf_vars['reports_path']
     HISTORY_FILE = conf_vars['history_path'] 
     
     #SAMPLE_DIR = '/home/cape/data/matsuzawa-feb2025/System_Checks/'
-    push_samples(SAMPLE_DIR, REPORTS, HISTORY_FILE, CAPEAPI, CAPE_REPORTS)
+    push_samples(SAMPLE_DIR, REPORTS, HISTORY_FILE, CAPEAPI, CAPE_STORE)
 			
 if __name__  == "__main__":
 	main()

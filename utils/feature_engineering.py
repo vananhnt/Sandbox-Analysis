@@ -7,7 +7,6 @@ import hashlib
 
 
 class FeatureEngineering:
-
     def __init__(self, log_level, binaries, column):
         self.log_level = log_level
         self.binaries = binaries

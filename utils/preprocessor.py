@@ -1,17 +1,12 @@
-"""
-Author: Luis Fueris
-Date: 15/05/2021
-"""
-
 import configparser
 import json
-
 
 class Preprocessor:
     """Performs a preprocessed steps of configuration file and json reports """ 
     def __init__(self, conf_file, log_level):
         self.conf_file = conf_file
         self.log_level = log_level
+        self.cape_storage = ''
         self.reports_path = ''
         self.results_path = ''
         self.p_train = 0.0
@@ -24,6 +19,8 @@ class Preprocessor:
             values as dictionary"""
         config = configparser.ConfigParser()
         config.read(self.conf_file)
+        if 'cape' in config:
+            self.cape_storage = config['cape']['storage']
         if 'reports' in config:
             self.reports_path = config['reports']['path']
             if self.log_level > 0:
@@ -38,13 +35,15 @@ class Preprocessor:
             self.results_path = config['results']['path']
             if self.log_level > 0:
                 print("[DEBUG] Results path is {}".format(self.results_path))
-
+            
             return { 'reports_path': self.reports_path,
                     'results_path': self.results_path,
+                    'cape_storage': self.cape_storage,
                     # 'p_train': self.p_train, 
                     # 'p_test': self.p_test,
                     'nfirst': self.nfirst,
                     'nlast': self.nlast }
+       
         else:
             if self.log_level > 0:
                 print("[ERROR] Reports section has not been configured")
@@ -85,7 +84,11 @@ class Preprocessor:
         else:
             timestamp = "None"
         
-        return {'name': name, 'md5': md5, 
+        if 'id' in json['info']:
+            id = json['info']['id']
+        else:
+            id = None
+        return {'name': name, 'id':id, 'md5': md5, 
             'sha1': sha1, 'entrypoint': entrypoint, 
             'timestamp': timestamp, 'classification': -1 }
 
@@ -265,7 +268,6 @@ class Preprocessor:
             print("[DEBUG] Network traffic (TCP and UDP) normalize")
 
         return network_traffic
-    
 
     def __read_dynamic_features(self, json):
         """ Reads dynamic features from json file report """
