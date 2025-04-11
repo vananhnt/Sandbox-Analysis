@@ -253,7 +253,7 @@ class Analysis:
         """ List all detected signatures """
         category = 'signatures'
         signatures_out = self.dataset\
-            .loc[:, ['binary', 'analysis_id', 'classification', category]]
+            .loc[:, ['binary', 'analysis_id', category]]
         
         low, mid, high = [], [], []
         for index, row in signatures_out.iterrows():
@@ -347,7 +347,5 @@ class Analysis:
         return analysis_out
     
     def get_merged_report(self, df_left, df_right):
-        analysis_out = self.dataset\
-            .loc[:, ['binary', 'analysis_id']]
-       
+        df_right = df_right.drop(columns=['binary', 'analysis_id'])
         return pd.concat([df_left, df_right], axis=1).drop('signatures', axis=1)

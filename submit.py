@@ -42,10 +42,15 @@ def send_file(CAPEAPI, full_path):
         print("[ERROR] Error sending sample {}", full_path)
         return
 
-    task_id = r.json()["data"]["task_ids"][0]
+    if "data" in r.json():
+        task_id = r.json()["data"]["task_ids"][0]
+    else:
+        task_id = None
     if task_id == None:
         print("[ERROR] Task ID is null")
-        return
+        if 'errors' in r.json():
+            print("[ERROR] " + str(r.json()["errors"][0]))
+        return  
 
     """ 2. Check suspicious file """
     print("[INFO] Checking task no. {} ({})".format(task_id, full_path))
@@ -120,16 +125,12 @@ def read_configuration(config_file, log_level):
             'storage_path': storage_path, 
              'history_path': log_path }
 
-def push_samples(sample_dir, file_extension="", reports=REPORTS, history_file=HISTORY_FILE, capeapi=CAPEAPI, cape_storage=CAPE_STORE):
-    print("[INFO] Send samples")
-    good = 0
-    f_good = open(history_file, 'a')
-    
-    path = Path(sample_dir)
-    for file in path.rglob("*" + file_extension):
-                full_path = str(file.resolve())
-                task_id = send_file(capeapi, full_path)
-                if task_id > 0:
+def push_a_sample(file, reports, f_good, capeapi, cape_storage):
+            full_path = str(file.resolve())
+           
+            task_id = send_file(capeapi, full_path)
+            if task_id is None: return
+            if task_id > 0:
                     """ Retrieve reports based on task_id """
                     md5_hash = get_md5(full_path)
 
@@ -156,8 +157,20 @@ def push_samples(sample_dir, file_extension="", reports=REPORTS, history_file=HI
                             f_good.write("{} - Failed sysmon.xml\n".format(full_path))
                     else:
                         f_good.write("{} - Failed report.json\n".format(full_path))
-                else:
+            else:
                     f_good.write("{} - Failed in send_file() func.\n".format(full_path))
+        
+def push_samples(sample_dir, reports=REPORTS, history_file=HISTORY_FILE, capeapi=CAPEAPI, cape_storage=CAPE_STORE):
+    print("[INFO] Send samples")
+    good = 0
+    f_good = open(history_file, 'a')
+    
+    path = Path(sample_dir)
+    if os.path.isfile(path):
+        push_a_sample(path, reports, f_good, capeapi, cape_storage)
+    else:
+        for file in path.rglob("*"):
+            push_a_sample(file, reports, f_good, capeapi, cape_storage)
     f_good.flush()
     f_good.close()
 
@@ -182,7 +195,7 @@ def main():
     REPORTS = conf_vars['reports_path']
     HISTORY_FILE = conf_vars['history_path'] 
     
-    push_samples(SAMPLE_DIR, ".exe", REPORTS, HISTORY_FILE, CAPEAPI, CAPE_STORE)
+    push_samples(SAMPLE_DIR, REPORTS, HISTORY_FILE, CAPEAPI, CAPE_STORE)
 			
 if __name__  == "__main__":
 	main()
