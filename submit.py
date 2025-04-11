@@ -170,7 +170,8 @@ def push_samples(sample_dir, reports=REPORTS, history_file=HISTORY_FILE, capeapi
         push_a_sample(path, reports, f_good, capeapi, cape_storage)
     else:
         for file in path.rglob("*"):
-            push_a_sample(file, reports, f_good, capeapi, cape_storage)
+            if os.path.isfile(file):
+                push_a_sample(file, reports, f_good, capeapi, cape_storage)
     f_good.flush()
     f_good.close()
 
