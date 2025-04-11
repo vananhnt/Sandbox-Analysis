@@ -81,6 +81,8 @@ class Preprocessor:
         
         if 'timestamp' in json['target']['file']:
             timestamp = json['target']['file']['timestamp']
+        elif 'ended' in json['info']:
+            timestamp = json['info']['ended']
         else:
             timestamp = "None"
         

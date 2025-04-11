@@ -31,8 +31,9 @@ def normalize_report(reports):
         binary_dict =  { 'binary': binary[0]['md5'], 
                         'analysis_id':binary[0]['id'],
                 'classification': binary[0]['classification'],
-                'registry_usage': binary[1]['registry_usage'],
+                'timestamp': binary[0]['timestamp'],
                 # Dyn features
+                'registry_usage': binary[1]['registry_usage'],
                 'n_read_keys': binary[1]['n_read_keys'],
                 'n_write_keys': binary[1]['n_write_keys'],
                 'n_delete_keys': binary[1]['n_delete_keys'],
@@ -96,8 +97,6 @@ def get_all_report_from_storage(cape_storage, report_dest):
         full_path = str(id.resolve())
         task_id = int(id.stem) if id.stem != 'latest' else -1
         if task_id > 0: 
-            for file in id.rglob("*"):
-                if task_id > 0:
                     """ Retrieve reports based on task_id """
                     """ Copy report json file """
                     src_file = cape_storage + str(task_id) + "/reports/report.json"
@@ -129,8 +128,8 @@ def main():
     cape_storage = conf_vars['cape_storage'] #Path to storage of CAPE
     
     """ Set the folder to save analysis result """
-    results_path = conf_vars['results_path'] 
-    results_folder = results_path + timestr + '/'
+    root_results_path = conf_vars['results_path'] 
+    results_folder = root_results_path + timestr + '/'
     Path(results_folder).mkdir(parents=True, exist_ok=True)
     #get_all_report_from_storage(cape_storage, reports_path)
 
@@ -155,14 +154,20 @@ def main():
 
     """ Data analysis """
     data_analysis = Analysis(log_level, dataset, results_folder, cape_storage)
-    data_analysis.signature_category_count()
-    data_analysis.check_result_json()
-    #save_static_to_csv(log_level, dataset, results_folder)
     
+    if not dataset.empty:
+        signature_df = data_analysis.signature_category_count()
+        result_file_df = data_analysis.check_result_json()
+        
+        report_df = data_analysis.get_merged_report(signature_df, result_file_df)
+        report_df.to_csv(results_folder + "extracted_result"\
+                                                    + '_raw.csv', index=True)
+    else: 
+        print("[INFO] No CAPE report found from {}".format(reports_path))
+
     end = time.time()
     print("[INFO] Elapsed time for normalizing and analysing dataset:"  
                                     + " {} seconds".format(end - start))
 
 if __name__ == '__main__':
     main()
-    

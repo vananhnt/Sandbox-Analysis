@@ -15,6 +15,7 @@ SAMPLE_DIR = '/home/cape/data/matsuzawa-feb2025/'
 CAPE_REPORTS = ''   # path to CAPE report
 REPORTS = ''        # path to analysis report 
 HISTORY_FILE = ''
+CAPE_STORE = ''
 
 def get_md5(full_path):
 	""" Calculate MD5 hash """
@@ -119,13 +120,13 @@ def read_configuration(config_file, log_level):
             'storage_path': storage_path, 
              'history_path': log_path }
 
-def push_samples(sample_dir, reports=REPORTS, history_file=HISTORY_FILE, capeapi=CAPEAPI, cape_storage=CAPE_STORE):
+def push_samples(sample_dir, file_extension="", reports=REPORTS, history_file=HISTORY_FILE, capeapi=CAPEAPI, cape_storage=CAPE_STORE):
     print("[INFO] Send samples")
     good = 0
     f_good = open(history_file, 'a')
     
     path = Path(sample_dir)
-    for file in path.rglob("*"):
+    for file in path.rglob("*" + file_extension):
                 full_path = str(file.resolve())
                 task_id = send_file(capeapi, full_path)
                 if task_id > 0:
@@ -181,8 +182,7 @@ def main():
     REPORTS = conf_vars['reports_path']
     HISTORY_FILE = conf_vars['history_path'] 
     
-    #SAMPLE_DIR = '/home/cape/data/matsuzawa-feb2025/System_Checks/'
-    push_samples(SAMPLE_DIR, REPORTS, HISTORY_FILE, CAPEAPI, CAPE_STORE)
+    push_samples(SAMPLE_DIR, ".exe", REPORTS, HISTORY_FILE, CAPEAPI, CAPE_STORE)
 			
 if __name__  == "__main__":
 	main()
