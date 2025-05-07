@@ -4,15 +4,22 @@ from pathlib import Path
 import json
 import pandas as pd
 import ast
+from utils.hook_modify import CapemonHook
 
 class Analysis:
     """ Performs data analysis """
+
     """ TODO: printing some message by log_level var """
-    def __init__(self, log_level, dataset, results_path, storage_path):
+    def __init__(self, log_level, summary_dataset, results_path, storage_path):
         self.log_level = log_level
-        self.dataset = dataset
+        self.dataset = summary_dataset
+        self.api_dataset = None
+        self.network_dataset = None
         self.results_path = results_path
         self.storage_path = storage_path
+
+    def set_api_data(self, api_data):
+        self.api_dataset = api_data
 
     def column_categorical_to_numerical(self, column):
         """ We use this function in order to conver categorical values to 
@@ -193,7 +200,7 @@ class Analysis:
         ordered_instruction_traces_out = instruction_traces_out.\
                                         sort_values(by=inst)
         print("[INFO] Printing ordered values of n_inst")
-        print(ordered_instruction_traces_out)
+        #print(ordered_instruction_traces_out)
 
         print("[INFO] Saving class result CSV file" +
                 " {}_class.csv".format(self.results_path + inst))
@@ -253,7 +260,7 @@ class Analysis:
         """ List all detected signatures """
         category = 'signatures'
         signatures_out = self.dataset\
-            .loc[:, ['binary', 'analysis_id', category]]
+            .loc[:, ['binary', 'name', 'analysis_id', category]]
         
         low, mid, high = [], [], []
         for index, row in signatures_out.iterrows():
@@ -308,14 +315,19 @@ class Analysis:
                                     result_json_path = dropped_file['path']
                     if not result_json_path == "":
                         with open(self.storage_path + str(analysis_id) + '/' + result_json_path, 'r') as f:
+                            recorded = False
                             try:
                                 results = ast.literal_eval(f.read())
                                 for result in results:
                                     if 'User Environment' == result['Result'] \
                                         or 'Sandbox Environment' == result['Result']:
+                                        recorded = True
                                         reported_result = result['Details']
                                         reported_evasion = result['Evasion Method']
                                         is_sandbox = 'yes' if result['Result'] == 'Sandbox Environment' else 'no'
+                                if not recorded:
+                                    reported_evasion = results[0]['Evasion Method']
+                                    is_sandbox = 'nan'
                             except: 
                                 if self.log_level > 0:
                                     print("[DEBUG] Parsing result.json error in {}".\
@@ -332,6 +344,8 @@ class Analysis:
                 if self.log_level > 0:
                     print("[INFO] Check result.json from {}".\
                             format(self.storage_path + str(analysis_id)))    
+                if is_sandbox == '':
+                    is_sandbox = 'error'
                 reported_results.append(reported_result)
                 reported_evasions.append(reported_evasion)
                 is_sandboxs.append(is_sandbox)
@@ -349,3 +363,107 @@ class Analysis:
     def get_merged_report(self, df_left, df_right):
         df_right = df_right.drop(columns=['binary', 'analysis_id'])
         return pd.concat([df_left, df_right], axis=1).drop('signatures', axis=1)
+    
+    def __read_api_seq_details(self, json_obj):
+        """ API calls of a sample"""
+        api_call_traces = []
+
+        n_api_calls = 0
+        process_ids = []
+        process_names = []
+        call_ids = []
+        call_apis, call_timestamps, call_categories, call_statuses, call_returns = [], [], [],[],[]
+        call_pretty_returns, call_argument_list, call_repeats = [], [], []
+
+        for p in json_obj['behavior']['processes']: # for each processes
+            pid = p['process_id']
+            pname = p['process_name']
+            api_calls = p['calls']
+            for call in api_calls:
+                call_timestamp = call['timestamp']
+                call_id = call['id']
+                call_api = call['api']
+                call_category = call['category']
+                call_status = call['status']
+                call_return = call['return']
+                call_pretty_return = call['pretty_return'] if 'pretty_return' in call else ''
+                call_arguments = call['arguments'] #name, value, pretty_value(if exist)
+                call_repeated = call['repeated']
+        
+                # The api data
+                process_ids.append(pid)
+                process_names.append(pname)
+                call_ids.append(call_id)
+                call_apis.append(call_api)
+                call_timestamps.append(call_timestamp)
+                call_categories.append(call_category)
+                call_statuses.append(call_status)
+                call_returns.append(call_return)
+                call_pretty_returns.append(call_pretty_return)
+                call_argument_list.append(call_arguments)
+                call_repeats.append(call_repeated)
+
+        return  call_ids, call_apis, call_timestamps, process_ids, process_names,  \
+                call_categories, call_statuses, call_returns, call_pretty_returns, \
+                call_argument_list, call_repeats
+    
+    def ___read_prompt_print(self, json_obj):
+        call_ids, call_apis, call_timestamps, process_ids, process_names,  \
+                call_categories, call_statuses, call_returns, call_pretty_returns, \
+                call_argument_list, call_repeats = self.__read_api_seq_details(json_obj)
+
+        prompts = []
+        for index in range(0, len(call_ids)):
+            if call_apis[index] == 'NtWriteFile':
+                # NtWriteFile (FileHandle, Handlename, Buffer, Length)
+                prompts.append(call_argument_list[index][2]['value'])
+        return prompts
+    
+    def __get_hookdef_by_name(self, hookdefs, x):
+        for hook in hookdefs:
+            if hook['api'] == 'GetUserNameW':
+                return hook
+        return None
+    
+    def get_api_seq_report(self):
+        """ Get new Matsuzawa result that reading the prompt output """
+        analysis_out = self.dataset\
+            .loc[:, ['binary', 'analysis_id']]
+
+        reported_results = []
+        reported_evasions = []
+        is_sandboxs = []
+        prompts = []
+        hooked_apis, hookdefs = CapemonHook.extract_capemon_hookdef()
+        encountered_hooks = set()
+        all_apis = set()
+        for index, row in analysis_out.iterrows():
+                file_binary = row['binary']
+                analysis_id = row['analysis_id']
+                result_json_path = ""
+                reported_result = ""
+                reported_evasion = ""
+                is_sandbox = ""
+                data = []
+                
+                if Path(self.storage_path + str(analysis_id)).exists():
+                    if Path(self.storage_path + str(analysis_id) + '/reports/report.json').exists():
+                        with open(self.storage_path + str(analysis_id) + '/reports/report.json', 'rb') as f:
+                            json_report_data = json.load(f)
+                            call_ids, call_apis, call_timestamps, process_ids, process_names,  \
+                            call_categories, call_statuses, call_returns, call_pretty_returns, \
+                            call_argument_list, call_repeats = self.__read_api_seq_details(json_report_data)
+                            for index in range(0, len(call_ids)):
+                                all_apis.add(call_apis[index])
+                                if call_apis[index] == 'NtWriteFile':
+                                    prompts.append(call_argument_list[index][2]['value'])
+                                if call_apis[index] in hooked_apis:
+                                    encountered_hooks.add(call_apis[index])
+                                if "GetUserNameW" in call_apis[index]:
+                                    if 'GetUserNameW' in hooked_apis:
+                                        print(self.__get_hookdef_by_name(hookdefs, 'GetUserNameW'))
+        for prompt in prompts:
+            if "Evasion Method" in prompt:
+                print("===========")
+                print(prompt)
+        print(encountered_hooks)

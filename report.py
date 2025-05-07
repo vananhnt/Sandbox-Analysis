@@ -22,13 +22,14 @@ def save_dynamic_to_csv(log_level, dataset, results_path):
     future project """
     dataset.to_csv(results_path + 'dynamic-test.csv')
 
-def normalize_report(reports):
+def normalize_summary_report(reports):
     """ Build your Panda DataFrame structure 
         with metadata , dynamic features, static features """
     normalize_dict = []
     for binary in reports:
         #binary[0] = metadata, binary[1]=dynamic_features, binary[2]=static_features
         binary_dict =  { 'binary': binary[0]['md5'], 
+                        'name': binary[0]['name'],
                         'analysis_id':binary[0]['id'],
                 'classification': binary[0]['classification'],
                 'timestamp': binary[0]['timestamp'],
@@ -77,6 +78,29 @@ def normalize_report(reports):
 
     dataset = pd.DataFrame.from_dict(normalize_dict)
     return dataset
+
+def normalize_api_report(reports):
+    normalize_dict = []
+    for binary in reports:
+        #binary[0] = metadata, binary[1]=api_sequences
+        binary_dict =  { 'binary': binary[0]['md5'], 
+                        'name': binary[0]['name'],
+                        'analysis_id':binary[0]['id'],
+                'classification': binary[0]['classification'],
+                'timestamp': binary[0]['timestamp'],
+                # API details
+                'api_ids': binary[1]['call_ids'],
+                'api_names': binary[1]['call_apis'],
+                'call_timestamps': binary[1]['call_timestamps'],
+                'process_ids': binary[1]['process_ids'],
+                'process_names': binary[1]['process_names'],
+                'call_categories': binary[1]['call_categories'],
+                'call_statuses': binary[1]['call_statuses'],
+                'call_returns': binary[1]['call_returns'],
+                'call_pretty_returns': binary[1]['call_pretty_returns'],
+                'call_argument_list': binary[1]['call_argument_list'],
+                'call_repeats': binary[1]['call_repeats']
+        }
 
 def save_static_to_csv(log_level, dataset, results_path):
     if log_level > 0:
@@ -138,18 +162,20 @@ def main():
 
     """ Iterate over all CAPE reports """
     iterator = os.scandir(reports_path)
-    reports = []
-    
+    sum_reports = []
+    prompt_reports = []
+
     for item in iterator:
         if os.path.isfile(item.path):
             metadata, dyn_features, sta_features = preprocessor.get_json_report(reports_path + item.name)
-           
+            metadata, prompts = preprocessor.get_prompts(reports_path + item.name)      
+            print(metadata['name'])
             """ We store as tuple <metadata, dyn_features,sta_features> """
-            binary = tuple((metadata, dyn_features,sta_features))
-            reports.append(binary)
+            sum_reports.append(tuple((metadata, dyn_features,sta_features)))
+            prompt_reports.append(tuple((metadata, prompts)))
 
     """ Convert reports to dataframe """
-    dataset = normalize_report(reports)
+    dataset = normalize_summary_report(sum_reports)
     #save_dynamic_to_csv(log_level, dataset, results_folder)
 
     """ Data analysis """
@@ -157,11 +183,11 @@ def main():
     
     if not dataset.empty:
         signature_df = data_analysis.signature_category_count()
-        result_file_df = data_analysis.check_result_json()
+        #data_analysis.get_api_seq_report()
+        result_file_df = data_analysis.check_result_json() 
         
         report_df = data_analysis.get_merged_report(signature_df, result_file_df)
-        report_df.to_csv(results_folder + "extracted_result"\
-                                                    + '_raw.csv', index=True)
+        report_df.to_csv(results_folder + "extracted_result" + '_raw.csv', index=True)
     else: 
         print("[INFO] No CAPE report found from {}".format(reports_path))
 

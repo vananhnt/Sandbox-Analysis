@@ -255,6 +255,61 @@ class Preprocessor:
                             filesystem_api_calls, device_api_calls, crypto_api_calls,\
                                 com_api_calls, browser_api_calls
 
+    def __read_api_seq_details(self, json):
+        """ API calls of a sample"""
+        api_call_traces = []
+
+        n_api_calls = 0
+        process_ids = []
+        process_names = []
+        call_ids = []
+        call_apis, call_timestamps, call_categories, call_statuses, call_returns = [], [], [],[],[]
+        call_pretty_returns, call_argument_list, call_repeats = [], [], []
+
+        for p in json['behavior']['processes']: # for each processes
+            pid = p['process_id']
+            pname = p['process_name']
+            api_calls = p['calls']
+            for call in api_calls:
+                call_timestamp = call['timestamp']
+                call_id = call['id']
+                call_api = call['api']
+                call_category = call['category']
+                call_status = call['status']
+                call_return = call['return']
+                call_pretty_return = call['pretty_return'] if 'pretty_return' in call else ''
+                call_arguments = call['arguments'] #name, value, pretty_value(if exist)
+                call_repeated = call['repeated']
+        
+                # The api data
+                process_ids.append(pid)
+                process_names.append(pname)
+                call_ids.append(call_id)
+                call_apis.append(call_api)
+                call_timestamps.append(call_timestamp)
+                call_categories.append(call_category)
+                call_statuses.append(call_status)
+                call_returns.append(call_return)
+                call_pretty_returns.append(call_pretty_return)
+                call_argument_list.append(call_arguments)
+                call_repeats.append(call_repeated)
+
+        return  call_ids, call_apis, call_timestamps, process_ids, process_names,  \
+                call_categories, call_statuses, call_returns, call_pretty_returns, \
+                call_argument_list, call_repeats
+    
+    def ___read_prompt_print(self, json):
+        call_ids, call_apis, call_timestamps, process_ids, process_names,  \
+                call_categories, call_statuses, call_returns, call_pretty_returns, \
+                call_argument_list, call_repeats = self.__read_api_seq_details(json)
+
+        prompts = []
+        for index in range(0, len(call_ids)):
+            if call_apis[index] == 'NtWriteFile':
+                # NtWriteFile (FileHandle, Handlename, Buffer, Length)
+                prompts.append(call_argument_list[index][2]['value'])
+        return prompts
+
     def __read_network_traffic(self, json):
         """ Reads network traffic """
         network_traffic = { 'tcp': [], 'udp': []}
@@ -356,8 +411,21 @@ class Preprocessor:
         sta_features = self.__read_static_features(json_data)
         if self.log_level > 0:
             print("[DEBUG] All static features have been normalized")
-
         return metadata, dyn_features, sta_features
+
+    def get_prompts(self, file):
+        """ Reads json report from file and extract api sequences """
+        if self.log_level > 0:
+            print("[DEBUG] Report JSON file {}".format(file))
+
+        with open(file, 'rb') as f:
+            json_data = json.load(f)
+        metadata = self.__read_metadata(json_data)
+        prompts = self.___read_prompt_print(json_data)
+        
+        if self.log_level > 0:
+            print("[DEBUG] Extracted API sequences")
+        return metadata, prompts
 
     ### Added feature
     def __read_static_features(self, json):

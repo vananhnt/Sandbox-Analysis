@@ -27,12 +27,24 @@ def get_md5(full_path):
 	md5_hash = md5.hexdigest()
 	return md5_hash
 
-def send_file(CAPEAPI, full_path):
+def get_machine_list(CAPEAPI):
+    REST_URL = CAPEAPI + "/machines/list"
+    PARAMS = {}
+    r = requests.post(REST_URL, params=PARAMS)
+    if r.status_code != 200:
+        print("[ERROR] Error getting machine list")
+        return
+    r.json()["machines"]
+
+def send_file(CAPEAPI, full_path, machine_id=None):
     """ Send suspicious file CAPE API """
     """ 1. Send suspicious file via API REST """
     print("[INFO] Sending file {}".format(full_path))
     REST_URL = CAPEAPI + "/tasks/create/file/"
     PARAMS = { }
+    if machine_id is not None:
+        PARAMS = {'machine': machine_id, 'options':'no-stealth=1 force-sleepskip=1'}
+    
     with open(full_path, "rb") as sample:
         files = {"file": (full_path, sample)}
         r = requests.post(REST_URL, params=PARAMS, files=files)
@@ -123,7 +135,7 @@ def read_configuration(config_file, log_level):
             'samples_path': samples_path, 
             'api_uri': api_uri, 
             'storage_path': storage_path, 
-             'history_path': log_path }
+            'history_path': log_path }
 
 def push_a_sample(file, reports, f_good, capeapi, cape_storage):
             full_path = str(file.resolve())
@@ -152,7 +164,7 @@ def push_a_sample(file, reports, f_good, capeapi, cape_storage):
                             good += 1
                             if good % 10 == 0:
                                 print("[+] We have analyzed {} good samples.".format(good))
-                                print("[+] Las sample was {}".format(full_path))
+                                print("[+] Last sample was {}".format(full_path))
                         else:
                             f_good.write("{} - Failed sysmon.xml\n".format(full_path))
                     else:
@@ -187,7 +199,7 @@ def main():
     args = parser.parse_args()
     if args.log_level > 0:
         print("[DEBUG] Configuration file: {}".format(args.conf_file.name))
-
+        
     conf_vars = read_configuration(args.conf_file.name, args.log_level)
 	
     CAPEAPI = conf_vars['api_uri']
