@@ -135,6 +135,10 @@ def main():
     parser.add_argument('--conf', '-c', dest='conf_file', 
                         type=argparse.FileType('r'), 
                         help="Path to configuration file")
+    parser.add_argument('--report-suffix', '-sf', dest='report_suffix', 
+                        type=str, default='', 
+                        help="Specify the suffix of report folder: cape-reports-sf")
+    
     args = parser.parse_args()
     if args.log_level > 0:
         print("[DEBUG] Configuration file: {}".format(args.conf_file.name))
@@ -147,15 +151,14 @@ def main():
     preprocessor = Preprocessor(conf_file, log_level)
     conf_vars = preprocessor.get_configuration()
 
-    """ Get configuration vars from configuration file """
-    reports_path = conf_vars['reports_path'] #Path to CAPE report that needed to be analysed
+    """ Get configuration vars from configuration file & args"""
+    reports_path = conf_vars['reports_path'].rstrip('/') + '-' + args.report_suffix + '/' if args.report_suffix else conf_vars['reports_path']
     cape_storage = conf_vars['cape_storage'] #Path to storage of CAPE
     
     """ Set the folder to save analysis result """
     root_results_path = conf_vars['results_path'] 
     results_folder = root_results_path + timestr + '/'
     Path(results_folder).mkdir(parents=True, exist_ok=True)
-    #get_all_report_from_storage(cape_storage, reports_path)
 
     """ Starting time """
     start = time.time()
@@ -169,25 +172,23 @@ def main():
         if os.path.isfile(item.path):
             metadata, dyn_features, sta_features = preprocessor.get_json_report(reports_path + item.name)
             metadata, prompts = preprocessor.get_prompts(reports_path + item.name)      
-            print(metadata['name'])
             """ We store as tuple <metadata, dyn_features,sta_features> """
             sum_reports.append(tuple((metadata, dyn_features,sta_features)))
             prompt_reports.append(tuple((metadata, prompts)))
 
     """ Convert reports to dataframe """
     dataset = normalize_summary_report(sum_reports)
-    #save_dynamic_to_csv(log_level, dataset, results_folder)
-
+    
     """ Data analysis """
     data_analysis = Analysis(log_level, dataset, results_folder, cape_storage)
     
     if not dataset.empty:
         signature_df = data_analysis.signature_category_count()
-        #data_analysis.get_api_seq_report()
-        result_file_df = data_analysis.check_result_json() 
+        result_file_df = data_analysis.check_result_output()
         
         report_df = data_analysis.get_merged_report(signature_df, result_file_df)
         report_df.to_csv(results_folder + "extracted_result" + '_raw.csv', index=True)
+
     else: 
         print("[INFO] No CAPE report found from {}".format(reports_path))
 

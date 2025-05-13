@@ -11,7 +11,7 @@ import shutil
 from pathlib import Path
 
 CAPEAPI = ''
-SAMPLE_DIR = '/home/cape/data/matsuzawa-feb2025/'
+SAMPLE_DIR = '/home/cape/data/samples'
 CAPE_REPORTS = ''   # path to CAPE report
 REPORTS = ''        # path to analysis report 
 HISTORY_FILE = ''
@@ -130,14 +130,17 @@ def read_configuration(config_file, log_level):
 
     if 'history' in config:
         log_path = config['history']['log']
+        latest_path = config['history']['latest']
 
     return {'reports_path': report_path, 
             'samples_path': samples_path, 
             'api_uri': api_uri, 
             'storage_path': storage_path, 
-            'history_path': log_path }
+            'history_path': log_path,
+            'latest_path': latest_path }
 
 def push_a_sample(file, reports, f_good, capeapi, cape_storage):
+            """ Return task id if successful """ 
             full_path = str(file.resolve())
            
             task_id = send_file(capeapi, full_path)
@@ -169,23 +172,35 @@ def push_a_sample(file, reports, f_good, capeapi, cape_storage):
                             f_good.write("{} - Failed sysmon.xml\n".format(full_path))
                     else:
                         f_good.write("{} - Failed report.json\n".format(full_path))
+                    return task_id
             else:
                     f_good.write("{} - Failed in send_file() func.\n".format(full_path))
+                    return 
         
 def push_samples(sample_dir, reports=REPORTS, history_file=HISTORY_FILE, capeapi=CAPEAPI, cape_storage=CAPE_STORE):
+    """ Return analysed task ID"""
     print("[INFO] Send samples")
     good = 0
     f_good = open(history_file, 'a')
-    
+
+    tasks = []
+
+    Path(reports).mkdir(exist_ok=True)
+
     path = Path(sample_dir)
     if os.path.isfile(path):
-        push_a_sample(path, reports, f_good, capeapi, cape_storage)
+        id = push_a_sample(path, reports, f_good, capeapi, cape_storage)
+        tasks.append(id)
     else:
+        tasks = []
         for file in path.rglob("*"):
             if os.path.isfile(file):
-                push_a_sample(file, reports, f_good, capeapi, cape_storage)
+                id = push_a_sample(file, reports, f_good, capeapi, cape_storage)
+                tasks.append(id)
+
     f_good.flush()
     f_good.close()
+    return tasks
 
 
 def main():
@@ -196,19 +211,31 @@ def main():
     parser.add_argument('--conf', '-c', dest='conf_file', 
                         type=argparse.FileType('r'),
                         help='Path to configuration file')
+    parser.add_argument('--path', '-f', dest='sample_path',
+                        type=str, default=None,
+                        help='Specify path to sample')
+    parser.add_argument('--report-suffix', '-sf', dest='report_suffix', 
+                        type=str, default='', 
+                        help="Specify the suffix of report folder: cape-reports-sf")
+    
     args = parser.parse_args()
     if args.log_level > 0:
         print("[DEBUG] Configuration file: {}".format(args.conf_file.name))
-        
+
     conf_vars = read_configuration(args.conf_file.name, args.log_level)
 	
     CAPEAPI = conf_vars['api_uri']
     CAPE_STORE = conf_vars['storage_path']
-    SAMPLE_DIR = conf_vars['samples_path']
-    REPORTS = conf_vars['reports_path']
-    HISTORY_FILE = conf_vars['history_path'] 
+    REPORTS = conf_vars['reports_path'].rstrip('/') + '-' + args.report_suffix + '/' if args.report_suffix else conf_vars['reports_path']
+    HISTORY_FILE = conf_vars['history_path']
+    LASTEST_FILE = conf_vars['latest_path']
+    SAMPLE_DIR = args.sample_path if args.sample_path is not None else conf_vars['samples_path']
     
-    push_samples(SAMPLE_DIR, REPORTS, HISTORY_FILE, CAPEAPI, CAPE_STORE)
+    reported_tasks = push_samples(SAMPLE_DIR, REPORTS, HISTORY_FILE, CAPEAPI, CAPE_STORE)
+    print("[INFO] Reported in {}".format(REPORTS))
+
+    open(LASTEST_FILE, "w").write("\n".join(map(str,reported_tasks)) + "\n")
+    print("[INFO] Analysed task IDs saved in {}".format(LASTEST_FILE))
 			
 if __name__  == "__main__":
 	main()
