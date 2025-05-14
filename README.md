@@ -18,6 +18,7 @@ path = /home/cape/sandboxes/cape-reports/
 
 [cape]
 api = http://192.168.122.1:8000/apiv2
+
 storage = /opt/CAPEv2/storage/analyses/
 
 [results]
