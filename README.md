@@ -8,7 +8,7 @@ For example, to submit samples in /home/cape/data/samples, with the output folde
 Note that the suffix is the same as the one use when submit.
 For example, to report on the previous submitted samples: 
 `python3 report.py --conf=cape-api.conf --report-suffix=test`
-Then the report will be in [results] path (/home/cape/sandboxes/results/timestamp)
+Then the report will be in [results] path (/home/cape/sandboxes/results/timestamp), extracted_result_raw.json
 
 Note that if no report-suffix is specified, default folder cape-reports are used. 
 
