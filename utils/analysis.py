@@ -384,16 +384,16 @@ class Analysis:
                 if is_sandbox == '':
                     is_sandbox = 'error'
                 
-                #reported_results.append(reported_result)
-                #reported_evasions.append(reported_evasion)
+                reported_results.append(reported_result)
+                reported_evasions.append(reported_evasion)
                 is_sandboxs.append(is_sandbox)
                 malscores.append(malscore)
                 maliciouses.append(malstatus)
                 prompts.append(prompt)
 
         analysis_out['prompt'] = prompts
-        #analysis_out['reported_result'] = reported_results
-        #analysis_out['reported_evasion'] = reported_evasions
+        analysis_out['reported_result'] = reported_results
+        analysis_out['reported_evasion'] = reported_evasions
         analysis_out['reported_sandbox'] = is_sandboxs
         analysis_out['malscore'] = malscores
         analysis_out['malstatus'] = maliciouses
