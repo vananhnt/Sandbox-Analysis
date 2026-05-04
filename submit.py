@@ -36,14 +36,19 @@ def get_machine_list(CAPEAPI):
         return
     r.json()["machines"]
 
-def send_file(CAPEAPI, full_path, machine_id=None):
-    """ Send suspicious file CAPE API """
-    """ 1. Send suspicious file via API REST """
+def send_file(CAPEAPI, full_path, machine_id=None, timeout=100):
     print("[INFO] Sending file {}".format(full_path))
     REST_URL = CAPEAPI + "/tasks/create/file/"
-    PARAMS = { }
+
+    PARAMS = {
+        "timeout": timeout
+    }
+
     if machine_id is not None:
-        PARAMS = {'machine': machine_id, 'options':'no-stealth=1 force-sleepskip=1'}
+        PARAMS.update({
+            'machine': machine_id,
+            'options': 'no-stealth=1 force-sleepskip=1'
+        })
     
     with open(full_path, "rb") as sample:
         files = {"file": (full_path, sample)}
